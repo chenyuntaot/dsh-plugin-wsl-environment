@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session execution environment",
+    "description": "Choose Windows or WSL for Agent commands in eligible sessions. File tools and manual terminals stay unchanged."
+  }
+}

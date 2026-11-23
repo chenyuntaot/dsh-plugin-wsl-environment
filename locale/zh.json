@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "会话执行环境",
+    "description": "为符合条件的会话选择 Windows 或 WSL 执行 Agent 命令；不改变文件工具或手动终端。"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "dsh-wsl-env",
+  "version": "0.1.0-dev.7",
+  "private": true,
+  "type": "module",
+  "description": "Select Windows or WSL for Agent commands in DeepSeek Harness Desktop.",
+  "scripts": {
+    "test": "node test/unit.mjs"
+  },
+  "engines": {
+    "dsh": "0.2.2-rc.5"
+  },
+  "dependencies": {
+    "zod": "4.6.6"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "lib/",
+    "docs/",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+__pycache__/
+*.pyc
+.env
+.env.*
+.dsh-wsl-smoke.*
+.dsh-wsl-guest.*
+.dsh-cancel-test-*
