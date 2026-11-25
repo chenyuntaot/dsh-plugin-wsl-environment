@@ -3,6 +3,7 @@ import { createSessionEnvironmentController, foldStarted } from './lib/session-c
 import { prepareControlledGuestLaunch } from './lib/wsl-carrier.mjs';
 import { createWslRunner, windowsCommandGuard, wslTool } from './lib/wsl-tool.mjs';
 import { registerTransport } from './lib/remote-host.mjs';
+import { resolveWslUserTerminalProfiles } from './lib/user-terminal-profile.mjs';
 
 export const inject = [
   'agents', 'agentPresets', 'connection', 'sandboxPolicy', 'sessionController',
@@ -68,6 +69,15 @@ export async function apply(ctx) {
   ctx.on('agent/created', async ({ agent, signal }) => {
     join(signal).throwIfAborted();
     await track(() => controller.initialize(agent));
+  });
+  ctx.inject(['terminalController'], terminalScope => {
+    const native = terminalScope.terminalController;
+    // Stock Desktop versions without the native extension retain their old terminal UI.
+    if (typeof native.registerUserShellProfiles !== 'function') return;
+    terminalScope.effect(() => native.registerUserShellProfiles('dsh-wsl-env', (agent, signal) => track(() =>
+      resolveWslUserTerminalProfiles({
+        platform: process.platform, agent, getChoice: () => controller.inspect(agent).choice, windowsRoot: process.env.SystemRoot,
+      }, join(signal)))));
   });
   ctx.tools.guard(call => windowsCommandGuard(controller, call));
   const tool = wslTool(controller, runner);

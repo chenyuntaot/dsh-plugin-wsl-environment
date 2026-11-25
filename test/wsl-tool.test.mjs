@@ -44,9 +44,14 @@ test('tool preserves the session policy and blocks unsupported modes and presets
     subprocess: sim.subprocess, prepare(args) { assert.equal(args.policy, policy); return sim.prepared; } });
   await assert.rejects(runner.execute(agent, target, 'pwd', 4), { code: 'preset-unsupported' });
   preset = 'cordis';
-  policy = { mode: 'danger-full-access' };
+  policy = { mode: 'unknown' };
   await assert.rejects(runner.execute(agent, target, 'pwd', 4), { code: 'policy-unsupported' });
   assert.equal(sim.spawns(), 0);
+  policy = { mode: 'danger-full-access', workspaceRoot: 'path' };
+  const probe = runner.preflight(agent, target);
+  assert.equal(sim.spawns(), 1);
+  sim.finish();
+  assert.deepEqual(await probe, { ok: true });
   const tool = wslTool({ inspect: () => ({ choice: { mode: 'windows' } }) }, runner);
   await assert.rejects(tool.execute({ command: 'pwd', description: 'Show directory' }, { agent }), { code: 'environment-not-selected' });
 });

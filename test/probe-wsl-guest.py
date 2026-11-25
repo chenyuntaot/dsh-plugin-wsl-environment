@@ -30,6 +30,20 @@ with tempfile.TemporaryDirectory(prefix='.dsh-wsl-guest.', dir=BASE) as temp:
         return subprocess.run(['/usr/bin/python3', '-I', str(RUNNER)], input=json.dumps(request),
                               text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=seconds + 10)
 
+    full = run('danger-full-access', f'''set -e
+uname -s
+pwd -P
+id -u
+printf '%s\\n' "$HOME"
+printf changed > {shlex.quote(str(outside))}
+''')
+    assert full.returncode == 0, full
+    assert full.stdout.splitlines() == ['Linux', str(workspace), str(os.getuid()), os.environ['HOME']], full
+    assert outside.read_text(encoding='utf-8') == 'changed'
+    outside.write_text('untouched', encoding='utf-8')
+    full_expired = run('danger-full-access', 'sleep 10 & wait', seconds=1)
+    assert full_expired.returncode == 124, full_expired
+
     readonly = run('read-only', 'uname -s; pwd -P; printf denied > ./read-only-new')
     assert readonly.stdout.splitlines() == ['Linux', str(workspace)], readonly
     assert readonly.returncode != 0 and not (workspace / 'read-only-new').exists(), readonly

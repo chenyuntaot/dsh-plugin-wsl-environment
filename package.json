@@ -1,6 +1,6 @@
 {
   "name": "dsh-wsl-env",
-  "version": "0.1.0-dev.7",
+  "version": "0.1.0-dev.8",
   "private": true,
   "type": "module",
   "description": "Select Windows or WSL for Agent commands in DeepSeek Harness Desktop.",

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Development guest runner; not yet wired to an installed DSH plugin."""
+"""Run and supervise the WSL command selected by the Host policy."""
 
 import ctypes as C
 import errno
@@ -162,7 +162,7 @@ def kill_adopted(child):
         time.sleep(0.02)
 
 
-def supervise(opts, seconds, seccomp_fd, nonce):
+def supervise(argv, *, cwd=None, seconds, pass_fds=(), nonce):
     libc = C.CDLL(None, use_errno=True)
     if libc.prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
         raise OSError(C.get_errno(), 'guest subreaper not available')
@@ -188,8 +188,8 @@ def supervise(opts, seconds, seccomp_fd, nonce):
     if stop_requested():
         return 130, 'cancelled'
     deadline = time.monotonic() + seconds
-    child = subprocess.Popen([BWRAP, *opts], stdin=subprocess.DEVNULL, close_fds=True,
-                             pass_fds=(seccomp_fd,), start_new_session=True)
+    child = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, close_fds=True,
+                             pass_fds=pass_fds, start_new_session=True)
     try:
         while True:
             if stop_requested():
@@ -213,10 +213,16 @@ def launch(request):
     if 'control' in request and nonce is None:
         raise ValueError('invalid cancellation channel')
     mode, seconds, command = request['mode'], request['seconds'], request['command']
-    if mode not in ('read-only', 'workspace-write') or type(seconds) is not int or not 1 <= seconds <= 120:
+    if mode not in ('read-only', 'workspace-write', 'danger-full-access') or type(seconds) is not int or not 1 <= seconds <= 120:
         raise ValueError('unsupported guest mode or deadline')
     if not isinstance(command, str) or not command or '\0' in command or len(command.encode()) > 24576:
         raise ValueError('unsupported command length or contents')
+    bash = ['/bin/bash', '--noprofile', '--norc', '-c', command]
+    if mode == 'danger-full-access':
+        # Inherit the distro user's environment and mount namespace. The Host
+        # still pins the distro and initial project directory per session.
+        return supervise(bash, cwd=request['cwd'], seconds=seconds, nonce=nonce)
+
     root, cwd = native_workspace(request['root'], request['cwd'])
     if mode == 'workspace-write':
         check_writable_aliases(root)
@@ -231,9 +237,9 @@ def launch(request):
         opts += ['--tmpfs', '/tmp']
     opts += ['--setenv', 'HOME', root, '--setenv', 'PATH', '/usr/local/bin:/usr/bin:/bin',
              '--setenv', 'LANG', 'C.UTF-8', '--setenv', 'TMPDIR', '/tmp',
-             '--remount-ro', '/', '--chdir', cwd, '--', '/bin/bash', '--noprofile', '--norc', '-c', command]
+             '--remount-ro', '/', '--chdir', cwd, '--', *bash]
     try:
-        return supervise(opts, seconds, fd, nonce)
+        return supervise([BWRAP, *opts], seconds=seconds, pass_fds=(fd,), nonce=nonce)
     finally:
         os.close(fd)
 

@@ -290,11 +290,11 @@ window.__ModuleLoader__.load({
         { mode: 'wsl', label: wslLabel, disabled: !editable || !status?.wslReady },
       ];
       const selectedLabel = !status ? t(checking ? 'checking' : 'unavailable')
-        : status.mode === 'wsl' ? wslLabel : 'Windows';
-      const errorText = failure === null ? '' : [
+        : status.mode === 'wsl' ? (checking && !status.wslReady ? t('checking') : wslLabel) : 'Windows';
+      const errorText = failure === null || (checking && failure.action === 'status') ? '' : [
         t(failure.action === 'set' ? 'writeFailed' : 'readFailed'), failure.detail,
       ].filter(Boolean).join(' ');
-      const unavailable = status?.wslReady === false ? status.reason || t('wslUnavailable') : '';
+      const unavailable = !checking && status?.wslReady === false ? status.reason || t('wslUnavailable') : '';
       const feedback = saving ? t('saving') : checking ? t('checking') : '';
       const explanation = [feedback, locked ? t('locked') : '', errorText, unavailable].filter(Boolean).join(' ');
 
