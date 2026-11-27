@@ -96,7 +96,8 @@ def native_workspace(root, cwd):
 def check_writable_aliases(root):
     # A readonly sibling mount does not protect an inode that already has a
     # writable alias inside the project. Reject aliases we cannot account for.
-    deadline = time.monotonic() + 2
+    # Keep in step with WRITE_BOUNDARY_BUDGET_SECONDS in wsl-tool.mjs.
+    deadline = time.monotonic() + 15
     tracked = {}
     scanned = 0
 
@@ -105,7 +106,7 @@ def check_writable_aliases(root):
 
     for _dir, names, files, owner in os.fwalk(root, follow_symlinks=False, onerror=fail):
         scanned += len(names) + len(files) + 1
-        if scanned > 250000 or time.monotonic() > deadline:
+        if scanned > 1_000_000 or time.monotonic() > deadline:
             raise ValueError('workspace is too large for the WSL write-boundary check')
         for name in files:
             info = os.stat(name, dir_fd=owner, follow_symlinks=False)
